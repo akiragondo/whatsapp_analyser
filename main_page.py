@@ -2,10 +2,9 @@ import streamlit as st
 import requests
 from streamlit_lottie import st_lottie
 import matplotlib.pyplot as plt
-import matplotlib.dates as mpl_dates
+import matplotlib.pylab as pl
+import numpy as np
 from data_utils import get_df_from_data
-import datetime as dt
-from dateutil.relativedelta import relativedelta
 
 
 plt.style.use('seaborn')
@@ -36,6 +35,8 @@ with c2:
 if uploaded_file is not None:
 
 
+    wide_figsize = (12, 5)
+    narrow_figsize = (6, 5)
     # with open(uploaded_file, 'r') as input_file:
     #     content = input_file.read()
     content = str(uploaded_file.read())
@@ -49,128 +50,154 @@ if uploaded_file is not None:
     end_date = df.index.to_pydatetime()[-1]
     max_days = end_date - start_date
     slider = st.slider('Select date', min_value=start_date, value=(start_date, end_date), max_value=end_date, format=format)
-
     df = df[slider[0]:slider[1]]
-    print(df.head(50))
-    wide_figsize = (14, 7)
-    narrow_figsize = (7, 7)
+    all_subjects = [subject for subject in df['Subject'].unique()]
 
-    y_columns = [subject for subject in df['Subject'].unique()]
+    y_columns = st.multiselect(
+        "Select and deselect the people you would like to include in the analysis. You can clear the current selection by clicking the corresponding x-button on the right",
+        all_subjects, default=all_subjects)
+    print(df.head(50))
+    subject_filter = [subject in y_columns for subject in df['Subject'].values]
+    df = df[subject_filter]
 
     cmap = plt.get_cmap('viridis')
-    colors = [cmap(cmap.N*i/len(y_columns)) for i, _ in enumerate(y_columns)]
+    colors = pl.get_cmap('viridis')(np.linspace(0,1, len(y_columns)))
 
-    #Makes first graph
-    date_df = df.resample('W').sum()
-    fig, ax = plt.subplots(figsize=wide_figsize)
-    date_df[y_columns].plot(kind='bar', alpha=0.6, cmap=cmap, ax=ax, stacked=True)
-    ax.patch.set_alpha(0.0)
-    ax.legend(y_columns)
+    if len(y_columns) > 0:
+        #Makes first graph
+        date_df = df.resample('W').sum()
+        fig, ax = plt.subplots(figsize=wide_figsize)
+        date_df[y_columns].plot(kind='area', alpha=0.6, cmap=cmap, ax=ax, stacked=True)
+        ax.patch.set_alpha(0.0)
+        ax.legend(y_columns)
 
-    max_message_count = date_df[y_columns].sum(axis = 1).max()
-    max_message_count_date = date_df.index[date_df[y_columns].sum(axis = 1).argmax()]
+        max_message_count = date_df[y_columns].sum(axis = 1).max()
+        max_message_count_date = date_df.index[date_df[y_columns].sum(axis = 1).argmax()]
 
-    st.subheader("Number of messages by date")
-    st.markdown(f"This is how many messages each one of you have exchanged per **week** between the dates of **{slider[0].strftime('%m/%y')}** and **{slider[1].strftime('%m/%y')}**, the most messages you guys have exchanged in a week was **{max_message_count}** on **{max_message_count_date.strftime('%d/%m/%y')}**")
-    st.pyplot(fig)
+        st.subheader("Number of messages by date")
+        st.markdown(f"This is how many messages each one of you have exchanged per **week** between the dates of **{slider[0].strftime('%m/%y')}** and **{slider[1].strftime('%m/%y')}**, the most messages you guys have exchanged in a week was **{max_message_count}** on **{max_message_count_date.strftime('%d/%m/%y')}**")
+        st.pyplot(fig)
 
-    #Makes second graph
-
-    filtered_sender_changes  = df[df['Is reply']]
-    fig, ax = plt.subplots(figsize=wide_figsize)
-    for index, subject in enumerate(y_columns):
-        subject_df = df[df['Subject'] == subject].resample('W').mean()['Reply time']
-        subject_df.plot(kind='area', alpha=0.6, cmap =cmap, ax=ax, label = subject, color = colors[index])
-    ax.patch.set_alpha(0.0)
-    st.subheader("Average reply time of messages by date")
-    st.markdown(f"This is how many messages each one of you have exchanged per **week** between the dates of **{slider[0].strftime('%m/%y')}** and **{slider[1].strftime('%m/%y')}**, the most messages you guys have exchanged in a week was **{max_message_count}** on **{max_message_count_date.strftime('%d/%m/%y')}**")
-    ax.legend(loc = 'upper right')
-    st.pyplot(fig)
+        other_y_columns = [f"{subject}_mlength" for subject in df['Subject'].unique()]
+        date_avg_df = df.resample('M').mean()
+        fig, ax = plt.subplots(figsize=wide_figsize)
+        date_df[other_y_columns].plot(kind='area', alpha=0.6, cmap =cmap, ax=ax)
+        ax.legend(y_columns)
+        ax.patch.set_alpha(0.0)
+        st.subheader("Average number of words in a message")
+        st.markdown(f"This basically shows how much effort each person puts in each message, the more words per message, the more it feels like the person is putting in real effort")
+        st.pyplot(fig)
 
 
-    conversations_df = df.groupby('Conv code').agg(count=('Conv code', 'size'), mean_date=('Date', 'mean')).reset_index()
-    conversations_df.index = conversations_df['mean_date']
-    conversations_df = conversations_df.resample('W').sum().fillna(0)
-    print(conversations_df.head(50))
-    fig, ax = plt.subplots(figsize=wide_figsize)
-    ax.plot(conversations_df.index, conversations_df['count'], color = colors[0], alpha= 0.7)
-    ax.fill_between(x = conversations_df.index,y1 = conversations_df['count'], color = colors[0], alpha = 0.2)
-    ax.patch.set_alpha(0.0)
-    st.subheader("Average conversation size")
-    st.markdown(f"This is how many messages each one of you have exchanged per **week** between the dates of **{slider[0].strftime('%m/%y')}** and **{slider[1].strftime('%m/%y')}**, the most messages you guys have exchanged in a week was **{max_message_count}** on **{max_message_count_date.strftime('%d/%m/%y')}**")
-    st.pyplot(fig)
+        #Makes second graph
+
+        filtered_sender_changes  = df[df['Is reply']]
+        fig, ax = plt.subplots(figsize=wide_figsize)
+        for index, subject in enumerate(y_columns):
+            subject_df = df[df['Subject'] == subject].resample('W').mean().fillna(0)['Reply time']
+            subject_df.plot(kind='line', alpha=0.6, cmap =cmap, ax=ax, label = subject, color = colors[index], marker='o', markersize = 5)
+        ax.patch.set_alpha(0.0)
+        st.subheader("Average reply time of messages by date")
+        st.markdown(f"This how long it took, on average for each person to reply to the previous message within a conversation")
+        ax.legend(loc = 'upper right')
+        st.pyplot(fig)
+
+        #Makes graph row
+        fig1, ax = plt.subplots(figsize=narrow_figsize)
+        c_11,c_12 = st.columns((1,1))
+        subject_df = df[df['Conv change']].groupby('Subject').count()['Reply time']
+        subject_df.plot(kind = 'pie', cmap =cmap, ax = ax,autopct = '%1.1f%%', explode = [0.015]*len(subject_df.index.unique()))
+
+        centre_circle = plt.Circle((0, 0), 0.80, fc='white')
+        fig = plt.gcf()
+        fig.gca().add_artist(centre_circle)
+
+        most_messages_winner = subject_df.index[subject_df.argmax()]
+        ax.patch.set_alpha(0.0)
+        c_11.subheader("Who's starts the conversations?")
+        c_11.markdown(f"This clearly shows that **{most_messages_winner}** started all the convos")
+        ax.set_ylabel('')
+        c_11.pyplot(fig1)
 
 
-    other_y_columns = [f"{subject}_mlength" for subject in df['Subject'].unique()]
-    date_avg_df = df.resample('M').mean()
-    fig, ax = plt.subplots(figsize=wide_figsize)
-    date_df[other_y_columns].plot(kind='area', alpha=0.6, cmap =cmap, ax=ax)
-    ax.legend(y_columns)
-    ax.patch.set_alpha(0.0)
-    st.subheader("Average number of words in a message")
-    st.markdown(f"This basically shows how much effort each person puts in each message, the more words per message, the more it feels like the person is putting in real effort")
-    st.pyplot(fig)
+        buffer_perc = 0.05
+        avg_msg_length = df.groupby('Subject').mean()['Reply time']
+        fig, ax = plt.subplots(figsize=narrow_figsize)
+        avg_msg_length.plot(kind='bar', color = colors,ax=ax)
+        ax.patch.set_alpha(0.0)
 
-    #Makes graph row
-    fig1, ax = plt.subplots(figsize=narrow_figsize)
-    c_11,c_12 = st.columns((1,1))
-    subject_df = df[df['Conv change']].groupby('Subject').count()['Reply time']
-    subject_df.plot(kind = 'pie', cmap =cmap, ax = ax,autopct = '%1.1f%%', explode = [0.015]*len(subject_df.index.unique()))
-
-    centre_circle = plt.Circle((0, 0), 0.70, fc='white')
-    fig = plt.gcf()
-    fig.gca().add_artist(centre_circle)
-
-    most_messages_winner = subject_df.index[subject_df.argmax()]
-    ax.patch.set_alpha(0.0)
-    c_11.subheader("Who's starts the conversations?")
-    c_11.markdown(f"This clearly shows that **{most_messages_winner}** started all the convos")
-    ax.set_ylabel('')
-    c_11.pyplot(fig1)
+        most_wpm_winner = avg_msg_length.index[avg_msg_length.argmax()]
+        max = avg_msg_length.max()*(1)
+        min = avg_msg_length.min()*(1-buffer_perc)
+        ax.set_ylim([min,max])
+        c_12.subheader("Average Reply time by user")
+        c_12.markdown(f"Who takes the longest to reply? **{most_wpm_winner}** won this one")
+        c_12.pyplot(fig)
 
 
-    conversation_dist = df.groupby('Conv code').count()['Message']
-    fig, ax = plt.subplots(figsize=narrow_figsize)
-    tax = ax.twinx()
-    conversation_dist.plot(kind='hist', cmap = cmap,ax=ax, alpha = 0.3, bins = 40)
-    conversation_dist.plot(kind='kde', cmap = cmap,ax=tax, alpha = 0.7)
-    y_min, y_max = tax.get_ylim()
-    tax.set_ylim([0, y_max])
-    x_min, x_max = tax.get_xlim()
-    tax.set_xlim([0, x_max])
-    ax.patch.set_alpha(0.0)
-
-    c_12.subheader("Number of messages per conversation")
-    c_12.markdown(f"How many messsages do you guys have in each conversation?")
-    c_12.pyplot(fig)
 
 
-    #Makes graph row
-    fig1, ax = plt.subplots(figsize=narrow_figsize)
-    c_11,c_12 = st.columns((1,1))
-    subject_df = df.groupby('Subject').count()['Message'].sort_values(ascending = False)
-    subject_df.plot(kind = 'pie', cmap =cmap, ax = ax,autopct = '%1.1f%%', explode = [0.015]*len(subject_df.index.unique()))
+        #Makes graph row
+        fig1, ax = plt.subplots(figsize=narrow_figsize)
+        c_11,c_12 = st.columns((1,1))
+        subject_df = df.groupby('Subject').count()['Message'].sort_values(ascending = False)
+        subject_df.plot(kind = 'pie', cmap =cmap, ax = ax,autopct = '%1.1f%%', explode = [0.015]*len(subject_df.index.unique()))
 
-    centre_circle = plt.Circle((0, 0), 0.70, fc='white')
-    fig = plt.gcf()
-    fig.gca().add_artist(centre_circle)
+        centre_circle = plt.Circle((0, 0), 0.80, fc='white')
+        fig = plt.gcf()
+        fig.gca().add_artist(centre_circle)
 
-    most_messages_winner = subject_df.index[subject_df.argmax()]
-    ax.patch.set_alpha(0.0)
-    c_11.subheader("Messages sent by user")
-    c_11.markdown(f"How many messages has each one sent in your convo? apparently **{most_messages_winner}** did")
-    ax.set_ylabel('')
-    c_11.pyplot(fig1)
+        most_messages_winner = subject_df.index[subject_df.argmax()]
+        ax.patch.set_alpha(0.0)
+        c_11.subheader("Messages sent by user")
+        c_11.markdown(f"How many messages has each one sent in your convo? apparently **{most_messages_winner}** did")
+        ax.set_ylabel('')
+        c_11.pyplot(fig1)
+
+        buffer_perc = 0.01
+        avg_msg_length = df.groupby('Subject').mean()['Message Length']
+        fig, ax = plt.subplots(figsize=narrow_figsize)
+        avg_msg_length.plot(kind='bar', color = colors,ax=ax)
+        ax.patch.set_alpha(0.0)
+
+        most_wpm_winner = avg_msg_length.index[avg_msg_length.argmax()]
+        max = avg_msg_length.max()*(1)
+        min = avg_msg_length.min()*(1-buffer_perc)
+        ax.set_ylim([min,max])
+        c_12.subheader("Average message length by user")
+        c_12.markdown(f"This one shows the average message length, apparently **{most_wpm_winner}** puts the most effort for each message")
+        c_12.pyplot(fig)
 
 
-    avg_msg_length = df.groupby('Subject').mean()['Message Length']
-    fig, ax = plt.subplots(figsize=narrow_figsize)
-    avg_msg_length.plot(kind='bar', cmap = cmap,ax=ax)
-    ax.patch.set_alpha(0.0)
 
-    most_wpm_winner = avg_msg_length.index[avg_msg_length.argmax()]
-    c_12.subheader("Average message length by user")
-    c_12.markdown(f"This one shows the average message length, apparently **{most_wpm_winner}** puts the most effort for each message")
-    c_12.pyplot(fig)
+        conversations_df = df.groupby('Conv code').agg(count=('Conv code', 'size'), mean_date=('Date', 'mean')).reset_index()
+        conversations_df.index = conversations_df['mean_date']
+        conversations_df = conversations_df.resample('W').sum().fillna(0)
+        print(conversations_df.head(50))
+        fig, ax = plt.subplots(figsize=wide_figsize)
+        ax.plot(conversations_df.index, conversations_df['count'], color = colors[0], alpha= 0.7)
+        ax.fill_between(x = conversations_df.index,y1 = conversations_df['count'], color = colors[0], alpha = 0.5)
+        ax.patch.set_alpha(0.0)
+        st.subheader("Average conversation size")
+        st.markdown(f"This is how many messages (on average) your conversations had, the more of them there are, the more messages you guys exchanged everytime one of you started the convo!")
+        st.pyplot(fig)
 
 
+
+
+
+        conversation_dist = df.groupby('Conv code').count()['Message']
+        fig, ax = plt.subplots(figsize=wide_figsize)
+        tax = ax.twinx()
+        conversation_dist.plot(kind='hist', cmap = cmap,ax=ax, alpha = 0.5, bins=[2**i for i in range(0,10)])
+        conversation_dist.plot(kind='kde', cmap = cmap,ax=tax, alpha = 0.7)
+        y_min, y_max = tax.get_ylim()
+        tax.set_ylim([0, y_max])
+        ax.patch.set_alpha(0.0)
+        ax.set_xscale('log')
+        x_min, x_max = tax.get_xlim()
+        tax.set_xlim([1, x_max])
+
+        st.subheader("Number of messages per conversation")
+        st.markdown(f"What does the distribution of the length of your conversations look like? This is a log scale so pay close attention to the x axis")
+        st.pyplot(fig)
