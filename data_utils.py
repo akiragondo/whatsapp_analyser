@@ -20,4 +20,5 @@ def get_df_from_data(raw_file_content):
         df[subject] = df['Subject'].apply(lambda x: 1 if x == subject else 0)
         df[f"{subject}_mlength"] = df[subject].values*df['Message Length']
 
+    df['Formatted Date'] = df.index.strftime('%b - %y').values
     return df

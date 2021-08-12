@@ -61,30 +61,34 @@ if uploaded_file is not None:
     cmap = plt.get_cmap('viridis')
     colors = [cmap(cmap.N*i/len(y_columns)) for i, _ in enumerate(y_columns)]
 
-    years = mpl_dates.YearLocator()  # every year
-    months = mpl_dates.MonthLocator()  # every month
-    years_fmt = mpl_dates.DateFormatter('%Y-%m')  # This is a format. Will be clear in Screenshot
-
 
     date_df = df.resample('W').sum()
     fig, ax = plt.subplots(figsize=wide_figsize)
     date_df[y_columns].plot(kind='bar', alpha=0.6, cmap=cmap, ax=ax, stacked=True)
     ax.patch.set_alpha(0.0)
+    ax.legend(y_columns)
     st.pyplot(fig)
 
     other_y_columns = [f"{subject}_mlength" for subject in df['Subject'].unique()]
     date_avg_df = df.resample('M').mean()
     fig, ax = plt.subplots(figsize=wide_figsize)
     date_df[other_y_columns].plot(kind='area', alpha=0.6, cmap =cmap, ax=ax)
+    ax.legend(y_columns)
     ax.patch.set_alpha(0.0)
     st.pyplot(fig)
 
-    fig, ax = plt.subplots(figsize=narrow_figsize)
+    fig1, ax = plt.subplots(figsize=narrow_figsize)
     c_11,c_12 = st.columns((1,1))
     subject_df = df.groupby('Subject').count()['Message']
-    subject_df.plot(kind = 'pie', cmap =cmap, ax = ax)
+    subject_df.plot(kind = 'pie', cmap =cmap, ax = ax,autopct = '%1.1f%%', explode = [0.015]*len(subject_df.index.unique()))
+
+    centre_circle = plt.Circle((0, 0), 0.70, fc='white')
+    fig = plt.gcf()
+    fig.gca().add_artist(centre_circle)
+
     ax.patch.set_alpha(0.0)
-    c_11.pyplot(fig)
+    ax.legend(y_columns)
+    c_11.pyplot(fig1)
 
 
     avg_msg_length = df.groupby('Subject').mean()['Message Length']
