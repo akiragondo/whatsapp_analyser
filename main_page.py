@@ -95,7 +95,7 @@ if uploaded_file is not None:
         fig, ax = plt.subplots(figsize=wide_figsize)
         for index, subject in enumerate(y_columns):
             subject_df = df[df['Subject'] == subject].resample('W').mean().fillna(0)['Reply time']
-            subject_df.plot(kind='line', alpha=0.6, cmap =cmap, ax=ax, label = subject, color = colors[index], marker='o', markersize = 5)
+            subject_df.plot(kind='line', alpha=0.95, cmap =cmap, ax=ax, label = subject, color = colors[index], marker='o', markersize = 5)
         ax.patch.set_alpha(0.0)
         st.subheader("Average reply time of messages by date")
         st.markdown(f"This how long it took, on average for each person to reply to the previous message within a conversation")
