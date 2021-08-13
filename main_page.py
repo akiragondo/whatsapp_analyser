@@ -5,8 +5,10 @@ import matplotlib.pyplot as plt
 import matplotlib.pylab as pl
 import numpy as np
 from data_utils import get_df_from_data
-
-
+import base64
+import json
+import uuid
+import re
 plt.style.use('seaborn')
 
 st.set_page_config(layout="centered")
@@ -18,6 +20,74 @@ def load_lottieurl(url: str):
         return None
     return r.json()
 
+def download_button(object_to_download, download_filename, button_text):
+    """
+    Generates a link to download the given object_to_download.
+    Params:
+    ------
+    object_to_download:  The object to be downloaded.
+    download_filename (str): filename and extension of file. e.g. mydata.csv,
+    some_txt_output.txt download_link_text (str): Text to display for download
+    link.
+    button_text (str): Text to display on download button (e.g. 'click here to download file')
+    pickle_it (bool): If True, pickle file.
+    Returns:
+    -------
+    (str): the anchor tag to download object_to_download
+    Examples:
+    --------
+    download_link(your_df, 'YOUR_DF.csv', 'Click to download data!')
+    download_link(your_str, 'YOUR_STRING.txt', 'Click to download text!')
+    """
+
+    if isinstance(object_to_download, bytes):
+        pass
+
+    # Try JSON encode for everything else
+    else:
+        object_to_download = json.dumps(object_to_download)
+
+    try:
+        # some strings <-> bytes conversions necessary here
+        b64 = base64.b64encode(object_to_download.encode()).decode()
+
+    except AttributeError as e:
+        b64 = base64.b64encode(towrite.read()).decode()
+
+    button_uuid = str(uuid.uuid4()).replace('-', '')
+    button_id = re.sub('\d+', '', button_uuid)
+
+    custom_css = f""" 
+        <style>
+            #{button_id} {{
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                background-color: rgb(255, 255, 255);
+                color: rgb(38, 39, 48);
+                padding: .25rem .75rem;
+                position: relative;
+                text-decoration: none;
+                border-radius: 4px;
+                border-width: 1px;
+                border-style: solid;
+                border-color: rgb(230, 234, 241);
+                border-image: initial;
+            }} 
+            #{button_id}:hover {{
+                border-color: rgb(246, 51, 102);
+                color: rgb(246, 51, 102);
+            }}
+            #{button_id}:active {{
+                box-shadow: none;
+                background-color: rgb(246, 51, 102);
+                color: white;
+                }}
+        </style> """
+
+    dl_link = custom_css + f'<a download="{download_filename}" id="{button_id}" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}">{button_text}</a><br></br>'
+
+    return dl_link
 
 lottie_chat = load_lottieurl('https://assets10.lottiefiles.com/packages/lf20_zezv30bd.json')
 lottie_msg = load_lottieurl('https://assets1.lottiefiles.com/packages/lf20_eBcQGa.json')
@@ -29,6 +99,11 @@ c1.title("""Whatsapp Chat Analyser""")
 c1.subheader("""Discover trends, analyse your chat history and judge your friends!""")
 c1.markdown(f"Dont worry, we wont peek, we're not about that, in fact, you can check the code in here: [link]({github_link})")
 uploaded_file = c1.file_uploader(label="""Upload your Whatsapp chat, don't worry, we won't peek""")
+
+file_path = 'sample_whatsapp_export.txt'
+with open(file_path, 'r') as f:
+    dl_button = download_button(f.read(), 'sample_file.txt', 'Try it out with my sample file!')
+    c1.markdown(dl_button, unsafe_allow_html=True)
 
 with c2:
     st_lottie(lottie_chat, speed=1, height=400, key="msg_lottie")
