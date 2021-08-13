@@ -276,3 +276,19 @@ if uploaded_file is not None:
         st.subheader("Number of messages per conversation")
         st.markdown(f"What does the distribution of the length of your conversations look like? This is a log scale so pay close attention to the x axis")
         st.pyplot(fig)
+
+
+thanks_line = """Special thanks to Charly Wargnier for the suggestions and jrieke for making the custom CSS download button!"""
+st.markdown("""    <style>
+footer {
+	visibility: hidden;
+	}
+footer:after {
+	content:'"""+ thanks_line+ """'; 
+	visibility: visible;
+	display: block;
+	position: relative;
+	#background-color: red;
+	padding: 5px;
+	top: 2px;
+}</style>""", unsafe_allow_html=True)
