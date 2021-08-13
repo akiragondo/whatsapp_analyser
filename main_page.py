@@ -149,7 +149,7 @@ if uploaded_file is not None:
         max_message_count = date_df[y_columns].sum(axis = 1).max()
         max_message_count_date = date_df.index[date_df[y_columns].sum(axis = 1).argmax()]
 
-        st.subheader("Number of messages by date")
+        st.subheader("When did you talk the most?")
         st.markdown(f"This is how many messages each one of you have exchanged per **week** between the dates of **{slider[0].strftime('%m/%y')}** and **{slider[1].strftime('%m/%y')}**, the most messages you guys have exchanged in a week was **{max_message_count}** on **{max_message_count_date.strftime('%d/%m/%y')}**")
         st.pyplot(fig)
 
@@ -159,7 +159,7 @@ if uploaded_file is not None:
         date_df[other_y_columns].plot(kind='area', alpha=0.6, cmap =cmap, ax=ax)
         ax.legend(y_columns)
         ax.patch.set_alpha(0.0)
-        st.subheader("Average number of words in a message")
+        st.subheader("How many words do your messages have?")
         st.markdown(f"This basically shows how much effort each person puts in each message, the more words per message, the more it feels like the person is putting in real effort")
         st.pyplot(fig)
 
@@ -172,7 +172,7 @@ if uploaded_file is not None:
             subject_df = df[df['Subject'] == subject].resample('W').mean().fillna(0)['Reply time']
             subject_df.plot(kind='line', alpha=0.95, cmap =cmap, ax=ax, label = subject, color = colors[index], marker='o', markersize = 5)
         ax.patch.set_alpha(0.0)
-        st.subheader("Average reply time of messages by date")
+        st.subheader("How long does it take for you to reply?")
         st.markdown(f"This how long it took, on average for each person to reply to the previous message within a conversation")
         ax.legend(loc = 'upper right')
         st.pyplot(fig)
@@ -183,7 +183,7 @@ if uploaded_file is not None:
         fig, ax = plt.subplots(figsize=wide_figsize)
         hour_df.plot(kind = 'area', ax = ax, color = colors[0], alpha = 0.6, legend = False)
         ax.patch.set_alpha(0.0)
-        st.subheader("Average message time")
+        st.subheader("When do you talk the most?")
         st.markdown(f"This shows when during the day you guys talk the most! Change the slider dates to see how that has changed with time")
         st.pyplot(fig)
 
@@ -215,7 +215,7 @@ if uploaded_file is not None:
         max = avg_msg_length.max()*(1)
         min = avg_msg_length.min()*(1-buffer_perc)
         ax.set_ylim([min,max])
-        c_12.subheader("Average Reply time by user")
+        c_12.subheader("Who takes the longest to reply?")
         c_12.markdown(f"Who takes the longest to reply? **{most_wpm_winner}** won this one")
         c_12.pyplot(fig)
 
@@ -234,7 +234,7 @@ if uploaded_file is not None:
 
         most_messages_winner = subject_df.index[subject_df.argmax()]
         ax.patch.set_alpha(0.0)
-        c_11.subheader("Messages sent by user")
+        c_11.subheader("Who talks the most?")
         c_11.markdown(f"How many messages has each one sent in your convo? apparently **{most_messages_winner}** did")
         ax.set_ylabel('')
         c_11.pyplot(fig1)
@@ -249,7 +249,7 @@ if uploaded_file is not None:
         max = avg_msg_length.max()*(1)
         min = avg_msg_length.min()*(1-buffer_perc)
         ax.set_ylim([min,max])
-        c_12.subheader("Average message length by user")
+        c_12.subheader("Who sends the bigger messages?")
         c_12.markdown(f"This one shows the average message length, apparently **{most_wpm_winner}** puts the most effort for each message")
         c_12.pyplot(fig)
 
@@ -263,29 +263,29 @@ if uploaded_file is not None:
         ax.plot(conversations_df.index, conversations_df['count'], color = colors[0], alpha= 0.7)
         ax.fill_between(x = conversations_df.index,y1 = conversations_df['count'], color = colors[0], alpha = 0.5)
         ax.patch.set_alpha(0.0)
-        st.subheader("Average conversation size")
+        st.subheader("How long are your conversations?")
         st.markdown(f"This is how many messages (on average) your conversations had, the more of them there are, the more messages you guys exchanged everytime one of you started the convo!")
         st.pyplot(fig)
 
 
 
 
-
-        conversation_dist = df.groupby('Conv code').count()['Message']
-        fig, ax = plt.subplots(figsize=wide_figsize)
-        tax = ax.twinx()
-        conversation_dist.plot(kind='hist', cmap = cmap,ax=ax, alpha = 0.5, bins=[2**i for i in range(0,10)])
-        conversation_dist.plot(kind='kde', cmap = cmap,ax=tax, alpha = 0.7)
-        y_min, y_max = tax.get_ylim()
-        tax.set_ylim([0, y_max])
-        ax.patch.set_alpha(0.0)
-        ax.set_xscale('log')
-        x_min, x_max = tax.get_xlim()
-        tax.set_xlim([1, x_max])
-
-        st.subheader("Number of messages per conversation")
-        st.markdown(f"What does the distribution of the length of your conversations look like? This is a log scale so pay close attention to the x axis")
-        st.pyplot(fig)
+        #
+        # conversation_dist = df.groupby('Conv code').count()['Message']
+        # fig, ax = plt.subplots(figsize=wide_figsize)
+        # tax = ax.twinx()
+        # conversation_dist.plot(kind='hist', cmap = cmap,ax=ax, alpha = 0.5, bins=[2**i for i in range(0,10)])
+        # conversation_dist.plot(kind='kde', cmap = cmap,ax=tax, alpha = 0.7)
+        # y_min, y_max = tax.get_ylim()
+        # tax.set_ylim([0, y_max])
+        # ax.patch.set_alpha(0.0)
+        # ax.set_xscale('log')
+        # x_min, x_max = tax.get_xlim()
+        # tax.set_xlim([1, x_max])
+        #
+        # st.subheader("")
+        # st.markdown(f"What does the distribution of the length of your conversations look like? This is a log scale so pay close attention to the x axis")
+        # st.pyplot(fig)
 
 
 thanks_line = """Special thanks to Charly Wargnier for the suggestions and jrieke for making the custom CSS download button!"""
