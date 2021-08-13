@@ -177,6 +177,16 @@ if uploaded_file is not None:
         ax.legend(loc = 'upper right')
         st.pyplot(fig)
 
+        #Makes second graph
+
+        hour_df  = df.groupby('Hour').count()['Message']/(df['Date'].values[-1] - df['Date'].values[0]).astype('timedelta64[D]').astype('int')
+        fig, ax = plt.subplots(figsize=wide_figsize)
+        hour_df.plot(kind = 'area', ax = ax, color = colors[0], alpha = 0.6, legend = False)
+        ax.patch.set_alpha(0.0)
+        st.subheader("Average message time")
+        st.markdown(f"This shows when during the day you guys talk the most! Change the slider dates to see how that has changed with time")
+        st.pyplot(fig)
+
         #Makes graph row
         fig1, ax = plt.subplots(figsize=narrow_figsize)
         c_11,c_12 = st.columns((1,1))

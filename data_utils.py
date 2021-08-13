@@ -55,7 +55,7 @@ def get_df_from_data(raw_file_content):
 
     df['Inter conv time'] = inter_conv_times_df_list
 
-
+    df['Hour'] = df['Date'].apply(lambda x: x.strftime('%H'))
     return df
 
 
