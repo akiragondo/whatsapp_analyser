@@ -131,7 +131,6 @@ if uploaded_file is not None:
     y_columns = st.multiselect(
         "Select and deselect the people you would like to include in the analysis. You can clear the current selection by clicking the corresponding x-button on the right",
         all_subjects, default=all_subjects)
-    print(df.head(50))
     subject_filter = [subject in y_columns for subject in df['Subject'].values]
     df = df[subject_filter]
 

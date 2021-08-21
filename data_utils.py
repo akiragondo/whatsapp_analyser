@@ -2,6 +2,8 @@ import pandas as pd
 import re
 import numpy as np
 from sklearn.preprocessing import OrdinalEncoder
+import streamlit as st
+
 
 def preprocess_df(df):
     df['Message Length'] = df['Message'].apply(lambda x: len(x.split(' ')))
@@ -48,18 +50,42 @@ def preprocess_df(df):
 
 def create_df_from_raw_file(raw_file_content):
     rows = raw_file_content.split('\\n')
-    valid_rows = [row for row in rows if re.match('^\d*/\d*/\d*', row)]
-    ignore_rows = 10
-    datetime = pd.DatetimeIndex([row.split(' - ')[0] for row in valid_rows[ignore_rows:]])
-    subjects = [row.split(', ')[1].split(' - ')[1].split(':')[0] for row in valid_rows[ignore_rows:]]
-    messages = [(':'.join(row.split(', ')[1].split(' - ')[1].split(': ')[1:])) for row in
-                valid_rows[ignore_rows:]]
-    df = pd.DataFrame(
-        zip(pd.to_datetime(datetime), subjects, messages),
-        columns=['Date', 'Subject', 'Message'],
-        index=datetime
-    )
-    return df
+    pattern_matches = pd.DataFrame([
+        ['English', '^\d*/\d*/\d*'],
+        ['German', '^\[\d*.\d*.\d*'],
+    ], columns= ['Country', 'Pattern'])
+    pattern_matches['Number_of_matches'] = pattern_matches['Pattern'].apply(lambda x : len([row for row in rows if re.match(x, row)]))
+    if pattern_matches['Number_of_matches'].max() < 1000:
+        st.error('These analysis need more data to work, at least 1000 messages exchanged, please come back after chatting to that person more!')
+        return None
+    else:
+        matched_country = pattern_matches.sort_values(by = 'Number_of_matches', ascending=False)['Country'].values[0]
+        if matched_country == 'English':
+            valid_rows = [row for row in rows if re.match('^\d*/\d*/\d*', row)]
+            ignore_rows = 10
+            datetime = pd.DatetimeIndex([row.split(' - ')[0] for row in valid_rows[ignore_rows:]])
+            subjects = [row.split(', ')[1].split(' - ')[1].split(':')[0] for row in valid_rows[ignore_rows:]]
+            messages = [(':'.join(row.split(', ')[1].split(' - ')[1].split(': ')[1:])) for row in
+                        valid_rows[ignore_rows:]]
+            df = pd.DataFrame(
+                zip(pd.to_datetime(datetime), subjects, messages),
+                columns=['Date', 'Subject', 'Message'],
+                index=datetime
+            )
+        elif matched_country == 'German':
+            valid_rows = [row for row in rows if re.match('^\[\d*.\d*.\d*', row)]
+            ignore_rows = 10
+            datetime = pd.DatetimeIndex([row.split('] ')[0][1:] for row in valid_rows[ignore_rows:]], dayfirst=True)
+            subjects = [row.split('] ')[1].split(':')[0] for row in valid_rows[ignore_rows:]]
+            messages = [(':'.join(row.split('] ')[1].split(':')[1:])) for row in
+                        valid_rows[ignore_rows:]]
+            df = pd.DataFrame(
+                zip(pd.to_datetime(datetime), subjects, messages),
+                columns=['Date', 'Subject', 'Message'],
+                index=datetime
+            )
+
+        return df
 
 
 def get_df_from_data(raw_file_content):
