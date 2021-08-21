@@ -3,8 +3,50 @@ import re
 import numpy as np
 from sklearn.preprocessing import OrdinalEncoder
 
+def preprocess_df(df):
+    df['Message Length'] = df['Message'].apply(lambda x: len(x.split(' ')))
+    for subject in df['Subject'].unique():
+        df[subject] = df['Subject'].apply(lambda x: 1 if x == subject else 0)
+        df[f"{subject}_mlength"] = df[subject].values * df['Message Length']
 
-def get_df_from_data(raw_file_content):
+    df['Formatted Date'] = df.index.strftime('%b - %y').values
+
+    conv_codes, conv_changes = cluster_into_conversations(df)
+    df['Conv code'] = conv_codes
+    df['Conv change'] = conv_changes
+    is_reply, sender_changes = find_replies(df)
+    df['Is reply'] = is_reply
+    df['Sender change'] = sender_changes
+
+    reply_times, indices = calculate_times_on_trues(df, 'Is reply')
+    reply_times_df_list = []
+    reply_time_index = 0
+    for i in range(0, len(df)):
+        if i in indices:
+            reply_times_df_list.append(reply_times[reply_time_index].astype("timedelta64[m]").astype("float"))
+            reply_time_index = reply_time_index + 1
+        else:
+            reply_times_df_list.append(0)
+
+    df['Reply time'] = reply_times_df_list
+
+    inter_conv_times, indices = calculate_times_on_trues(df, 'Conv change')
+    inter_conv_times_df_list = []
+    inter_conv_time_index = 0
+    for i in range(0, len(df)):
+        if i in indices:
+            inter_conv_times_df_list.append(
+                inter_conv_times[inter_conv_time_index].astype("timedelta64[m]").astype("float"))
+            inter_conv_time_index = inter_conv_time_index + 1
+        else:
+            inter_conv_times_df_list.append(0)
+
+    df['Inter conv time'] = inter_conv_times_df_list
+
+    df['Hour'] = df['Date'].apply(lambda x: x.strftime('%H'))
+    return df
+
+def create_df_from_raw_file(raw_file_content):
     rows = raw_file_content.split('\\n')
     valid_rows = [row for row in rows if re.match('^\d*/\d*/\d*', row)]
     ignore_rows = 10
@@ -17,46 +59,13 @@ def get_df_from_data(raw_file_content):
         columns=['Date', 'Subject', 'Message'],
         index=datetime
     )
-    df['Message Length'] = df['Message'].apply(lambda x: len(x.split(' ')))
-    for subject in df['Subject'].unique():
-        df[subject] = df['Subject'].apply(lambda x: 1 if x == subject else 0)
-        df[f"{subject}_mlength"] = df[subject].values*df['Message Length']
-
-    df['Formatted Date'] = df.index.strftime('%b - %y').values
-
-    conv_codes, conv_changes = cluster_into_conversations(df)
-    df['Conv code'] = conv_codes
-    df['Conv change'] = conv_changes
-    is_reply, sender_changes  = find_replies(df)
-    df['Is reply'] = is_reply
-    df['Sender change'] = sender_changes
-
-    reply_times, indices = calculate_times_on_trues(df, 'Is reply')
-    reply_times_df_list = []
-    reply_time_index = 0
-    for i in range(0, len(df)):
-        if i in indices:
-            reply_times_df_list.append(reply_times[reply_time_index].astype("timedelta64[m]").astype("float"))
-            reply_time_index = reply_time_index+1
-        else:
-            reply_times_df_list.append(0)
-
-    df['Reply time'] = reply_times_df_list
-
-    inter_conv_times, indices = calculate_times_on_trues(df, 'Conv change')
-    inter_conv_times_df_list = []
-    inter_conv_time_index = 0
-    for i in range(0, len(df)):
-        if i in indices:
-            inter_conv_times_df_list.append(inter_conv_times[inter_conv_time_index].astype("timedelta64[m]").astype("float"))
-            inter_conv_time_index = inter_conv_time_index+1
-        else:
-            inter_conv_times_df_list.append(0)
-
-    df['Inter conv time'] = inter_conv_times_df_list
-
-    df['Hour'] = df['Date'].apply(lambda x: x.strftime('%H'))
     return df
+
+
+def get_df_from_data(raw_file_content):
+    df = create_df_from_raw_file(raw_file_content)
+    preprocessed = preprocess_df(df)
+    return preprocessed
 
 
 def cluster_into_conversations(df : pd.DataFrame, inter_conversation_threshold_time: int = 60):
