@@ -42,19 +42,7 @@ def download_button(object_to_download, download_filename, button_text):
     download_link(your_str, 'YOUR_STRING.txt', 'Click to download text!')
     """
 
-    if isinstance(object_to_download, bytes):
-        pass
 
-    # Try JSON encode for everything else
-    else:
-        object_to_download = json.dumps(object_to_download)
-
-    try:
-        # some strings <-> bytes conversions necessary here
-        b64 = base64.b64encode(object_to_download.encode()).decode()
-
-    except AttributeError as e:
-        b64 = base64.b64encode(towrite.read()).decode()
 
     button_uuid = str(uuid.uuid4()).replace('-', '')
     button_id = re.sub('\d+', '', button_uuid)
@@ -87,7 +75,8 @@ def download_button(object_to_download, download_filename, button_text):
                 }}
         </style> """
 
-    dl_link = custom_css + f'<a download="{download_filename}" id="{button_id}" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}">{button_text}</a><br></br>'
+    b64 = base64.b64encode(object_to_download.encode()).decode()
+    dl_link = custom_css + f'<a download="{download_filename}" id="{button_id}" href="data:text/plain;base64,{b64}">{button_text}</a><br></br>'
 
     return dl_link
 
@@ -114,8 +103,7 @@ if uploaded_file is not None:
 
     # with open(uploaded_file, 'r') as input_file:
     #     content = input_file.read()
-    content = str(uploaded_file.read())
-    df = get_df_from_data(content)
+    df = get_df_from_data(uploaded_file)
 
 
     st.subheader('Date Range')
