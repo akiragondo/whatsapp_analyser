@@ -3,11 +3,11 @@ from streamlit_lottie import st_lottie
 import matplotlib.pyplot as plt
 import matplotlib.pylab as pl
 import numpy as np
-
 from components.graph_components import GraphComponents
 from components.ui_components import download_button
 from components.ui_components import load_lottieurl
 from data_utils import get_df_from_data
+import base64
 
 class ViewController:
     def __init__(self):
@@ -147,6 +147,12 @@ class ViewController:
 
     def build_about_me_ui(self):
         st.title("About the Creator")
+        c1, c2 = st.columns([1,1])
+        c1.markdown("Hey! My name is Gustavo Akira Gondo, a Computer Engineer from Brazil! This page is still under "
+                    "construction since I want to finish the rest of the app before I focus on this bit, but if you "
+                    "would like to ask me anything of if you have any projects you think I could be a good addition "
+                    "to, please, send me a message at gustavogondo@alunos.utfpr.edu.br")
+        c2.image('images/me.jpg')
 
     def build_conversation_explanation(self):
         st.title('How does the chat analyser work?')
@@ -166,6 +172,8 @@ class ViewController:
         st.markdown("""To implement that in our messages, I have implemented a code that, if it detects a significant 
         amount of time between two messages, say around 1 hour, it'll define the end of a conversation and the 
         beginning of a new one! Here's the code for it:""")
+        image = open('images/ConvDiagram.svg', 'r').read()
+        self.render_svg(image)
         st.code("""def cluster_into_conversations(
         df : pd.DataFrame, 
         inter_conversation_threshold_time: int = 60
@@ -201,6 +209,8 @@ class ViewController:
         The response of one person to the messages sent by the previous one within a conversation""")
         st.markdown("""This is faily easy to implement, I will say that a reply happens when the subject changes 
         within a conversation, here's the code for it!:""")
+        image = open('images/ReplyDiagram.svg', 'r').read()
+        self.render_svg(image)
         st.code("""def find_replies(df : pd.DataFrame):
     # These are sanity checks in order to see if I made any ordering mistakes
     assert('Conv code' in df.columns)
@@ -219,6 +229,12 @@ class ViewController:
         it's the start of a new conversation. This helps us segregate the replies to only those that happen within a 
         conversation, say, when you two are really **Talking** to each other, which I think is more indicative of the 
         level of interaction you two are having""")
+
+    def render_svg(self, svg):
+        """Renders the given svg string."""
+        b64 = base64.b64encode(svg.encode('utf-8')).decode("utf-8")
+        html = f"""<img style = "width: 100%" src="data:image/svg+xml;base64,{b64}"/>"""
+        st.write(html, unsafe_allow_html=True)
 
     def build_sidebar(self):
 
