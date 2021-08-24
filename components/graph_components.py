@@ -4,9 +4,10 @@ import matplotlib.pyplot as plt
 
 class GraphComponents:
     def __init__(self, params):
+        plt.style.use('seaborn')
         self.params = params
 
-    def _create_wide_area_fig(self,df : pd.DataFrame):
+    def _create_wide_area_fig(self,df : pd.DataFrame, legend : bool = True):
         fig, ax = plt.subplots(figsize = self.params['wide_figsize'])
         df.plot(
             kind = 'area',
@@ -16,13 +17,16 @@ class GraphComponents:
             stacked = True
         )
         ax.patch.set_alpha(0.0)
-        ax.legend(self.params['subjects'])
+        fig.patch.set_alpha(0.0)
+        if legend:
+            ax.legend(self.params['subjects'])
         return fig
 
     def _create_narrow_bar_fig(self, df : pd.DataFrame, buffer_perc : float):
         fig, ax = plt.subplots(figsize=self.params['narrow_figsize'])
         df.plot(kind='bar', color=self.params['colors'], ax=ax, alpha = 0.96)
         ax.patch.set_alpha(0.0)
+        fig.patch.set_alpha(0.0)
         return fig
 
     def create_narrow_pie_fig(self, df : pd.DataFrame):
@@ -32,6 +36,7 @@ class GraphComponents:
         fig = plt.gcf()
         fig.gca().add_artist(centre_circle)
         ax.patch.set_alpha(0.0)
+        fig.patch.set_alpha(0.0)
         ax.set_ylabel('')
         return fig
 
@@ -63,7 +68,7 @@ class GraphComponents:
     def average_conversation_hour_graph(self, df):
         hour_df = df.groupby('Hour').count()['Message'] / (df['Date'].values[-1] - df['Date'].values[0]).astype(
             'timedelta64[D]').astype('int')
-        fig = self._create_wide_area_fig(hour_df)
+        fig = self._create_wide_area_fig(hour_df, legend = False)
         return fig
 
     def conversation_starter_graph(self, df):
