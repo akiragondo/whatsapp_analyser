@@ -16,7 +16,7 @@ class ViewController:
             page_title='Whatsapp Chat Analyser',
             page_icon=':test_tube:',
             layout='centered',
-            initial_sidebar_state='collapsed',
+            initial_sidebar_state='auto',
 
         )
 
