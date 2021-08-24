@@ -100,16 +100,23 @@ def get_df_from_data(raw_file_content):
 
 def cluster_into_conversations(df : pd.DataFrame, inter_conversation_threshold_time: int = 60):
     threshold_time_mins = np.timedelta64(inter_conversation_threshold_time, 'm')
+
+    # This calculates the time between the current message and the previous one
     conv_delta = df.index.values - np.roll(df.index.values, 1)
     conv_delta[0] = 0
+
+    # This detects where the time between messages is higher than the threshold
     conv_changes = conv_delta > threshold_time_mins
     conv_changes_indices = np.where(conv_changes)[0]
     conv_codes = []
+
+    # This encodes each message with its own conversation code
     last_conv_change = 0
     for i, conv_change in enumerate(conv_changes_indices):
         conv_codes.extend([i]*(conv_change - last_conv_change))
         last_conv_change = conv_change
 
+    # This serves to ensure that the conversation codes and the number of messages are aligned
     conv_codes = pad_list_to_value(conv_codes, len(df), conv_codes[-1])
     conv_changes = pad_list_to_value(conv_changes, len(df), False)
 
@@ -125,12 +132,17 @@ def pad_list_to_value(input_list : list, length : int, value):
 
 
 def find_replies(df : pd.DataFrame):
+    # These are sanity checks in order to see if I made any ordering mistakes
     assert('Conv code' in df.columns)
     assert('Conv change' in df.columns)
     assert('Subject' in df.columns)
+    # Ordinal encoders will encode each subject with its own number
     message_senders = OrdinalEncoder().fit_transform(df['Subject'].values.reshape(-1,1))
+    # This compares the current subject with the previous subject
+    # In a way that computers can optimize
     sender_changed = (np.roll(message_senders, 1) - message_senders).reshape(1, -1)[0] != 0
     sender_changed[0] = False
+    # This checks if the reply isn't within a different conversation
     is_reply = sender_changed & ~df['Conv change']
     return is_reply, sender_changed
 
